@@ -1,0 +1,170 @@
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SupremePrivateHub"
+screenGui.Parent = CoreGui 
+screenGui.ResetOnSpawn = false
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Parent = screenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.1, -100, 0.1, -80)
+MainFrame.Size = UDim2.new(0, 200, 0, 160)
+MainFrame.Active = true
+
+local TopBar = Instance.new("Frame")
+TopBar.Name = "TopBar"
+TopBar.Parent = MainFrame
+TopBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+TopBar.BorderSizePixel = 0
+TopBar.Size = UDim2.new(1, 0, 0, 30)
+
+local Title = Instance.new("TextLabel")
+Title.Parent = TopBar
+Title.BackgroundTransparency = 1
+Title.Size = UDim2.new(1, -10, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Text = "CQB GUI BY NOOB_HACK"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 14
+
+local ammoBtn = Instance.new("TextButton")
+ammoBtn.Parent = MainFrame
+ammoBtn.Size = UDim2.new(0.9, 0, 0, 35)
+ammoBtn.Position = UDim2.new(0.05, 0, 0, 45)
+ammoBtn.Text = "Infinite Ammo"
+ammoBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+ammoBtn.TextColor3 = Color3.new(1, 1, 1)
+ammoBtn.Font = Enum.Font.SourceSansBold
+ammoBtn.TextSize = 30
+
+local espBtn = Instance.new("TextButton")
+espBtn.Parent = MainFrame
+espBtn.Size = UDim2.new(0.9, 0, 0, 35)
+espBtn.Position = UDim2.new(0.05, 0, 0, 95)
+espBtn.Text = "ESP NPC: OFF"
+espBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+espBtn.TextColor3 = Color3.new(1, 1, 1)
+espBtn.Font = Enum.Font.SourceSansBold
+espBtn.TextSize = 30
+
+_G.ESPActive = false
+
+local function UpdateEsp(model, state)
+    if Players:GetPlayerFromCharacter(model) then return end
+
+    local hl = model:FindFirstChild("NPCHighlight")
+    if state then
+        if not hl then
+            hl = Instance.new("Highlight")
+            hl.Name = "NPCHighlight"
+            hl.FillColor = Color3.fromRGB(255, 0, 0)
+            hl.FillTransparency = 0.5
+            hl.Parent = model
+        end
+        hl.Enabled = true
+    elseif hl then
+        hl.Enabled = false
+    end
+
+    local bgui = model:FindFirstChild("NPCHealthBar")
+    if state then
+        if not bgui then
+            local head = model:WaitForChild("Head", 5)
+            local hum = model:FindFirstChild("Humanoid")
+            if head and hum then
+                bgui = Instance.new("BillboardGui", model)
+                bgui.Name = "NPCHealthBar"
+                bgui.Adornee = head
+                bgui.Size = UDim2.new(0, 40, 0, 4)
+                bgui.ExtentsOffset = Vector3.new(0, 2.5, 0)
+                bgui.AlwaysOnTop = true
+                
+                local bar = Instance.new("Frame", bgui)
+                bar.Size = UDim2.new(hum.Health/hum.MaxHealth, 0, 1, 0)
+                bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+                bar.BorderSizePixel = 0
+                
+                hum.HealthChanged:Connect(function()
+                    bar:TweenSize(UDim2.new(math.clamp(hum.Health/hum.MaxHealth, 0, 1), 0, 1, 0), "Out", "Quad", 0.2, true)
+                end)
+            end
+        end
+        if bgui then bgui.Enabled = true end
+    elseif bgui then
+        bgui.Enabled = false
+    end
+end
+
+ammoBtn.MouseButton1Click:Connect(function()
+    pcall(function()
+        for _, v in pairs(getgc(true)) do
+            if type(v) == "table" and rawget(v, "Ammo") and rawget(v, "StoredAmmo") then
+                v.Ammo = 9999
+                v.StoredAmmo = 9999999
+            end
+        end
+    end)
+    ammoBtn.Text = "If not work click again"
+    task.wait(1)
+    ammoBtn.Text = "Infinite Ammo"
+end)
+
+espBtn.MouseButton1Click:Connect(function()
+    _G.ESPActive = not _G.ESPActive
+    
+    if _G.ESPActive then
+        espBtn.Text = "ESP NPC: ON"
+        espBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+    else
+        espBtn.Text = "ESP NPC: OFF"
+        espBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    end
+
+    for _, v in pairs(Workspace:GetDescendants()) do
+        if v:IsA("Model") and v:FindFirstChild("Humanoid") then
+            UpdateEsp(v, _G.ESPActive)
+        end
+    end
+end)
+
+Workspace.DescendantAdded:Connect(function(v)
+    if v:IsA("Model") then
+        task.wait(0.5)
+        if v:FindFirstChild("Humanoid") then UpdateEsp(v, _G.ESPActive) end
+    end
+end)
+
+local dragging, dragInput, dragStart, startPos
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then dragging = false end
+        end)
+    end
+end)
+
+TopBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then update(input) end
+end)
